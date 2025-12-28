@@ -16,10 +16,17 @@ class MadamCocoScraper:
     def __init__(self):
         """Selenium başlat"""
         options = Options()
-        options.add_argument('--headless')  # Arka planda
+        options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
         options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        options.binary_location = '/usr/bin/chromium-browser'  # Ubuntu'da Chromium
+    
+    from selenium.webdriver.chrome.service import Service
+    service = Service('/usr/bin/chromedriver')
+    
+    self.driver = webdriver.Chrome(service=service, options=options)
         
         self.driver = webdriver.Chrome(options=options)
         self.products = []
