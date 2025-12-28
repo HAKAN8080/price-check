@@ -1,0 +1,40 @@
+name: Madam Coco Scraper
+
+on:
+  workflow_dispatch:  # Manuel çalıştırma butonu
+  schedule:
+    - cron: '0 9 * * *'  # Her gün saat 09:00
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Install Chrome
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y chromium-browser chromium-chromedriver
+    
+    - name: Run scraper
+      run: |
+        python scraper.py
+    
+    - name: Commit results
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add output/*.csv
+        git commit -m "Update scraped data - $(date)" || echo "No changes"
+        git push
