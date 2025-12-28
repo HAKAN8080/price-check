@@ -6,11 +6,11 @@ Selenium ile tüm ürünleri çeker ve CSV'ye kaydeder
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
 import pandas as pd
 import time
 from datetime import datetime
+import os
 
 class MadamCocoScraper:
     def __init__(self):
@@ -21,14 +21,10 @@ class MadamCocoScraper:
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-        options.binary_location = '/usr/bin/chromium-browser'  # Ubuntu'da Chromium
-    
-    from selenium.webdriver.chrome.service import Service
-    service = Service('/usr/bin/chromedriver')
-    
-    self.driver = webdriver.Chrome(service=service, options=options)
+        options.binary_location = '/usr/bin/chromium-browser'
         
-        self.driver = webdriver.Chrome(options=options)
+        service = Service('/usr/bin/chromedriver')
+        self.driver = webdriver.Chrome(service=service, options=options)
         self.products = []
     
     def scrape_category(self, category_url, max_pages=5):
@@ -41,13 +37,11 @@ class MadamCocoScraper:
             
             try:
                 self.driver.get(url)
-                time.sleep(3)  # Sayfa yüklensin
+                time.sleep(3)
                 
-                # Scroll down - lazy loading için
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 time.sleep(2)
                 
-                # Ürün kartlarını bul
                 products_found = self.extract_products()
                 
                 if not products_found:
@@ -66,13 +60,12 @@ class MadamCocoScraper:
         """Sayfadaki ürünleri çıkar"""
         found = []
         
-        # Farklı CSS selector'ları dene
         selectors = [
             "div.product-item",
-            "div.product-card", 
+            "div.product-card",
             "article.product",
             "div[data-product-id]",
-            ".product",
+            ".product"
         ]
         
         for selector in selectors:
@@ -96,7 +89,6 @@ class MadamCocoScraper:
     def parse_product(self, element):
         """Tek ürünü parse et"""
         try:
-            # Ürün adı
             name = None
             name_selectors = ["h3", "h2", ".product-name", ".product-title", "a"]
             for sel in name_selectors:
@@ -107,7 +99,6 @@ class MadamCocoScraper:
                 except:
                     continue
             
-            # Fiyat
             price = None
             price_selectors = [".price", ".product-price", "span.price-value"]
             for sel in price_selectors:
@@ -119,14 +110,12 @@ class MadamCocoScraper:
                 except:
                     continue
             
-            # Link
             link = None
             try:
                 link = element.find_element(By.TAG_NAME, "a").get_attribute("href")
             except:
                 pass
             
-            # Görsel
             image = None
             try:
                 img = element.find_element(By.TAG_NAME, "img")
@@ -154,7 +143,6 @@ class MadamCocoScraper:
         if not price_text:
             return None
         
-        # Sadece rakam ve virgül/nokta
         clean = re.sub(r'[^\d,.]', '', price_text)
         clean = clean.replace('.', '').replace(',', '.')
         
@@ -171,14 +159,11 @@ class MadamCocoScraper:
         
         df = pd.DataFrame(self.products)
         
-        # Klasör yoksa oluştur
-        import os
         os.makedirs('output', exist_ok=True)
         
         df.to_csv(filename, index=False, encoding='utf-8-sig')
         print(f"\n💾 {len(self.products)} ürün kaydedildi: {filename}")
         
-        # Önizleme
         print(f"\n📊 İlk 5 ürün:")
         print(df.head())
     
@@ -187,23 +172,19 @@ class MadamCocoScraper:
         self.driver.quit()
 
 
-# KULLANIM
 if __name__ == "__main__":
     print("🛍️ MADAM COCO SCRAPER")
     print("=" * 50)
     
     scraper = MadamCocoScraper()
     
-    # Kategoriler
     categories = [
-        "https://www.madamcoco.com.tr/ev-tekstili",
-        # Buraya daha fazla kategori ekleyebilirsiniz
+        "https://www.madamcoco.com.tr/ev-tekstili"
     ]
     
     for category in categories:
         scraper.scrape_category(category, max_pages=3)
     
-    # CSV'ye kaydet
     scraper.save_to_csv()
     
     scraper.close()
